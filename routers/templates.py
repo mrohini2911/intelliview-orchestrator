@@ -70,4 +70,53 @@ def create_template_routes(interview_template_manager) -> APIRouter:
             logger.error(f"Error creating template: {e!s}")
             raise HTTPException(status_code=500, detail="Error creating template")
 
+    @router.get("/templates/{template_id}")
+    async def get_template(template_id: str):
+        """Get a single interview template by ID"""
+        template = interview_template_manager.get_template(template_id)
+        if not template:
+            raise HTTPException(status_code=404, detail="Template not found")
+        return template
+
+    @router.put("/templates/{template_id}")
+    async def update_template(template_id: str, request: CreateTemplateRequest):
+        """Update an existing interview template"""
+        try:
+            template = interview_template_manager.update_template(
+                template_id,
+                name=request.name,
+                interview_type=request.interview_type,
+                description=request.description,
+                duration_minutes=request.duration_minutes,
+                question_count=request.question_count,
+                category_distribution=request.category_distribution,
+                difficulty_distribution=request.difficulty_distribution,
+            )
+            if not template:
+                raise HTTPException(status_code=404, detail="Template not found")
+            return template
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error updating template: {e}")
+            raise HTTPException(status_code=500, detail="Error updating template")
+
+    @router.delete("/templates/{template_id}")
+    async def delete_template(template_id: str):
+        """Delete an interview template"""
+        deleted = interview_template_manager.delete_template(template_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Template not found")
+        return {"deleted": True, "template_id": template_id}
+
+    @router.get("/templates/{template_id}/question-plan")
+    async def get_question_plan(template_id: str):
+        """Get the question breakdown this template maps to, for the question system"""
+        plan = interview_template_manager.get_question_plan(template_id)
+        if not plan:
+            raise HTTPException(status_code=404, detail="Template not found")
+        return plan
+
     return router
